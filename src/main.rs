@@ -1,3 +1,4 @@
+#![allow(clippy::doc_markdown)]
 #![doc = include_str!("../README.md")]
 
 mod schema;
@@ -58,6 +59,7 @@ async fn setup_client() -> (
 
 /// Only read the json file for now.
 #[tokio::main]
+#[allow(clippy::field_reassign_with_default)]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Get exported tasks
     let takeout_json_path = "Tasks.json";
@@ -110,14 +112,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let mut new_api_task = Task::default();
             new_api_task.title = Some(takeout_task_item.title.clone());
-            new_api_task.notes = takeout_task_item.description.clone();
+            new_api_task
+                .notes
+                .clone_from(&takeout_task_item.description);
 
             if let Some(due_str) = &takeout_task_item.due_date {
                 new_api_task.due = Some(due_str.clone());
             }
 
             // Status should also match API expectations ("needsAction", "completed").
-            new_api_task.status = takeout_task_item.status.clone();
+            new_api_task.status.clone_from(&takeout_task_item.status);
 
             match hub
                 .tasks()

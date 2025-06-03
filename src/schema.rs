@@ -1,6 +1,9 @@
+//! Definition of Google Takeout json schema
+
 use serde::Deserialize;
 
 /// Represents an individual task item from the Google Takeout JSON.
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TakeoutTask {
     /// The ID of the task within the Takeout data (different from the ID after migration).
@@ -30,6 +33,7 @@ pub struct TakeoutTask {
 }
 
 /// Represents a task list (e.g., "My Tasks") from the Google Takeout JSON.
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TakeoutTaskList {
     /// The kind of the object, typically "tasks#tasks".
@@ -48,6 +52,7 @@ pub struct TakeoutTaskList {
 }
 
 /// Represents the root structure of the Google Takeout Tasks JSON file.
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct TakeoutData {
     /// The kind of the object, typically "tasks#taskLists".
