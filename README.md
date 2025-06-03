@@ -1,4 +1,6 @@
 # GoogleTasksImporter
+[![Rust](https://github.com/Alignof/GoogleTasksImporter/actions/workflows/rust.yml/badge.svg)](https://github.com/Alignof/GoogleTasksImporter/actions/workflows/rust.yml)
+
 Import tasks to the Google tasks from json file.
 
 This program is designed to migrate Google Tasks data from a JSON file (exported via Google Takeout) to another Google Account using the Google Tasks API and Rust. 
