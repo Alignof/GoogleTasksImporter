@@ -22,5 +22,5 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 google-tasks1 = "6.0.0"
 hyper = { version = "0.14", features = ["full"] }
-hyper-rustls = { version = "0.27.6", features = ["http2"] }
+hyper-rustls = { version = "0.27.6", features = ["ring", "http2"], default-features = false }
 http-body-util = "0.1.3"
