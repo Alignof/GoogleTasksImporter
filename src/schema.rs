@@ -21,7 +21,7 @@ pub struct TakeoutTask {
     pub updated: Option<String>,
     /// The completion timestamp in RFC3339 format, if the task is completed.
     pub completed: Option<String>,
-    /// The type of the task (e.g., "PERSONAL_TASK").
+    /// The type of the task (e.g., "`PERSONAL_TASK`").
     #[serde(rename = "task_type")]
     pub task_type: Option<String>,
     /// A link to the task in Google Tasks (from Takeout).

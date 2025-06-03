@@ -17,7 +17,7 @@ use http_body_util::combinators::BoxBody;
 use tasks1::yup_oauth2::authenticator::Authenticator;
 use tasks1::{api::Task, hyper_rustls, hyper_util, yup_oauth2, TasksHub};
 
-/// File path for OAuth2 client secret.
+/// File path for `OAuth2` client secret.
 const CLIENT_SECRET_FILE: &str = "client_secret.json";
 /// File path for caching the authentication token.
 const TOKEN_CACHE_FILE: &str = ".tokencache.json";
@@ -62,13 +62,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Get exported tasks
     let takeout_json_path = "Tasks.json";
     let json_content = fs::read_to_string(takeout_json_path)
-        .map_err(|e| format!("Failed to read {}: {}", takeout_json_path, e))?;
+        .map_err(|e| format!("Failed to read {takeout_json_path}: {e}"))?;
 
     // Parse as TakeoutData
     let takeout_data_root: TakeoutData = serde_json::from_str(&json_content).map_err(|e| {
         format!(
-            "Failed to parse JSON data: {}. Check TakeoutData/TakeoutTaskList/TakeoutTask struct definitions.",
-            e
+            "Failed to parse JSON data: {e}. Check TakeoutData/TakeoutTaskList/TakeoutTask struct definitions."
         )
     })?;
 
@@ -122,7 +121,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             match hub
                 .tasks()
-                .insert(new_api_task.clone(), &target_google_tasklist_id)
+                .insert(new_api_task.clone(), target_google_tasklist_id)
                 .doit()
                 .await
             {
