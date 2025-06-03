@@ -28,7 +28,10 @@ async fn setup_client() -> (
 ) {
     // Get an ApplicationSecret instance by some means. It contains the `client_id` and
     // `client_secret`, among other things.
-    let secret: yup_oauth2::ApplicationSecret = Default::default();
+    let secret: yup_oauth2::ApplicationSecret =
+        yup_oauth2::read_application_secret(Path::new(CLIENT_SECRET_FILE))
+            .await
+            .expect("client_secret.json not found or unreadable. Place it in the correct path.");
 
     // Instantiate the authenticator. It will choose a suitable authentication flow for you,
     // unless you replace  `None` with the desired Flow.
