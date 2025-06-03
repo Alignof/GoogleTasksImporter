@@ -27,9 +27,6 @@ pub struct TakeoutTask {
     /// A link to the task in Google Tasks (from Takeout).
     #[serde(rename = "selfLink")]
     pub self_link: Option<String>,
-    // `parent` and `position` fields are not directly present in the provided JSON,
-    // but they exist conceptually in the Google Tasks API.
-    // Check if your Takeout JSON includes these if needed.
 }
 
 /// Represents a task list (e.g., "My Tasks") from the Google Takeout JSON.

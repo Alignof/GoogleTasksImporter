@@ -2,6 +2,7 @@
 
 mod schema;
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -76,12 +77,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     })?;
 
-    let _my_tasks = &takeout_data_root.items[0];
-    let want_to_do_list = &takeout_data_root.items[1];
-
     println!("Authentication client set up.");
 
     let (client, auth) = setup_client().await;
-    let mut hub = TasksHub::new(client, auth);
+    let hub = TasksHub::new(client, auth);
+    let (_resp, task_list) = hub.tasklists().list().doit().await.unwrap();
+
+    let task_id_dict: HashMap<String, String> = task_list
+        .items
+        .clone()
+        .unwrap()
+        .iter()
+        .map(|task| (task.title.clone().unwrap(), task.id.clone().unwrap()))
+        .collect();
+
+    println!("task lists: {task_id_dict:#?}");
     Ok(())
 }
