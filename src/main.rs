@@ -2,6 +2,8 @@
 
 mod schema;
 
+use schema::TakeoutData;
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
@@ -13,9 +15,7 @@ use crate::hyper_util::client::legacy::connect::HttpConnector;
 use crate::hyper_util::client::legacy::Client;
 use http_body_util::combinators::BoxBody;
 use tasks1::yup_oauth2::authenticator::Authenticator;
-use tasks1::{hyper_rustls, hyper_util, yup_oauth2, FieldMask, TasksHub};
-
-use schema::TakeoutData;
+use tasks1::{api::Task, hyper_rustls, hyper_util, yup_oauth2, TasksHub};
 
 /// File path for OAuth2 client secret.
 const CLIENT_SECRET_FILE: &str = "client_secret.json";
@@ -27,18 +27,13 @@ async fn setup_client() -> (
     Client<HttpsConnector<HttpConnector>, BoxBody<hyper::body::Bytes, tasks1::hyper::Error>>,
     Authenticator<HttpsConnector<HttpConnector>>,
 ) {
-    // Get an ApplicationSecret instance by some means. It contains the `client_id` and
-    // `client_secret`, among other things.
+    // Get an ApplicationSecret from `CLIENT_SECRET_FILE`.
+    // It contains the `client_id` and `client_secret`, among other things.
     let secret: yup_oauth2::ApplicationSecret =
         yup_oauth2::read_application_secret(Path::new(CLIENT_SECRET_FILE))
             .await
             .expect("client_secret.json not found or unreadable. Place it in the correct path.");
 
-    // Instantiate the authenticator. It will choose a suitable authentication flow for you,
-    // unless you replace  `None` with the desired Flow.
-    // Provide your own `AuthenticatorDelegate` to adjust the way it operates and get feedback about
-    // what's going on. You probably want to bring in your own `TokenStorage` to persist tokens and
-    // retrieve them from storage.
     let auth = yup_oauth2::InstalledFlowAuthenticator::builder(
         secret,
         yup_oauth2::InstalledFlowReturnMethod::HTTPRedirect,
@@ -92,5 +87,88 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .collect();
 
     println!("task lists: {task_id_dict:#?}");
+
+    for (list_index, takeout_list) in takeout_data_root.items.iter().enumerate() {
+        println!(
+            "Processing task list {}/{}: '{}' ({} tasks)...",
+            list_index + 1,
+            takeout_data_root.items.len(),
+            takeout_list.title,
+            takeout_list.items.len()
+        );
+
+        let target_google_tasklist_id = task_id_dict
+            .get(&takeout_list.title)
+            .unwrap_or_else(|| todo!("create a task via api when task list is not found"));
+
+        for (task_index, takeout_task_item) in takeout_list.items.iter().enumerate() {
+            println!(
+                "  Migrating task {}/{}: '{}'",
+                task_index + 1,
+                takeout_list.items.len(),
+                takeout_task_item.title
+            );
+
+            let mut new_api_task = Task::default();
+            new_api_task.title = Some(takeout_task_item.title.clone());
+            new_api_task.notes = takeout_task_item.description.clone();
+
+            if let Some(due_str) = &takeout_task_item.due_date {
+                new_api_task.due = Some(due_str.clone());
+            }
+
+            // Status should also match API expectations ("needsAction", "completed").
+            new_api_task.status = takeout_task_item.status.clone();
+
+            match hub
+                .tasks()
+                .insert(new_api_task.clone(), &target_google_tasklist_id)
+                .doit()
+                .await
+            {
+                Ok((_response, created_task)) => {
+                    println!(
+                        "  => Success: ID '{}', Title '{}'",
+                        created_task.id.as_deref().unwrap_or("N/A"),
+                        created_task.title.as_deref().unwrap_or("N/A")
+                    );
+                }
+                Err(e) => {
+                    eprintln!(
+                        "  => Error: Failed to create task '{}': {}",
+                        takeout_task_item.title, e
+                    );
+                    // Handle specific errors, e.g., rate limits (403 Forbidden or 429 Too Many Requests).
+                    // Check the error message details for determination.
+                    let error_string = e.to_string().to_lowercase();
+                    if error_string.contains("ratelimitexceeded")
+                        || error_string.contains("userratelimitexceeded")
+                        || error_string.contains("too many requests")
+                    {
+                        println!("Rate limit likely reached. Waiting for 10 seconds.");
+                        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+                        // Retry logic could be added here, but it's omitted in this sample.
+                        // Decide whether to retry the same task or skip it.
+                        eprintln!(
+                            "  => Proceeding to the next task without retry (potential skip due to rate limit)."
+                        );
+                    } else if error_string.contains("invalid")
+                        && (error_string.contains("due date") || error_string.contains("due"))
+                    {
+                        eprintln!(
+                            "  => Due date format might be invalid: {:?}. Skipping.",
+                            new_api_task.due
+                        );
+                    }
+                }
+            }
+
+            // Add a short delay between requests to avoid API rate limits.
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        }
+    }
+
+    println!("All task migration processing completed.");
+
     Ok(())
 }
